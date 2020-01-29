@@ -4,7 +4,7 @@ export interface Knowledge {
 
 interface Tester { (input: any): boolean; }
 
-interface PatternMatching {
+export interface PatternMatching {
   test: Tester;
   value?: any;
 }
@@ -85,11 +85,16 @@ export class MatchRegexp extends MatchAny {
     super(knowledge);
     if (arguments.length < 2) return ;
     if (typeof regexp === 'string') {
+      const input = regexp;
       const start = 1;
-      const end = regexp.lastIndexOf(regexp.charAt(start - 1));
+      const end   = input.lastIndexOf(input.charAt(start - 1));
       if (end === -1) throw new Error('Unable to build RegExp');
       try {
-        return new RegExp(regexp.substring(start, end), regexp.substr(end + 1));
+        const regexp = new RegExp(input.substring(start, end), input.substr(end + 1));
+        if (regexp.global)
+          return { test: (input: string) => { regexp.lastIndex = 0; return regexp.test(input); } }
+        else
+          return regexp;
       } catch (e) {
         console.log(regexp + '\n' + e);
         return { test: (input: any) => false };
