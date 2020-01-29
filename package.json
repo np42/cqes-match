@@ -1,0 +1,18 @@
+{
+  "name": "cqes-match",
+  "version": "1.0.0",
+  "description": "Pattern matching library",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/np42/cqes-match.git"
+  },
+  "keywords": [],
+  "author": "Nicolas Pelletier <npelletier@apiculteur.io>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/apiculteur/cqes/issues"
+  },
+  "homepage": "https://github.com/apiculteur/cqes-type#readme",
+  "dependencies": {
+  }
+}
