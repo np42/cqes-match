@@ -9,6 +9,8 @@ export interface PatternMatching {
   value?: any;
 }
 
+export type PM = PatternMatching;
+
 export class MatchAny implements PatternMatching {
   public value?: any;
 
