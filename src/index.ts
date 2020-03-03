@@ -1,15 +1,18 @@
 export interface Knowledge {
-  String: { [name: string]: { new (knowledge: Knowledge, pattern?: any): PatternMatching } };
+  String: { [name: string]: PatternConstructor };
+}
+
+export interface PatternConstructor {
+  new (knowledge: Knowledge, pattern?: any): PatternMatching;
 }
 
 interface Tester { (input: any): boolean; }
 
-export interface PatternMatching {
-  test: Tester;
-  value?: any;
-}
+export interface PatternMatching { test: Tester; }
 
+export type K  = Knowledge;
 export type PM = PatternMatching;
+export type PC = PatternConstructor;
 
 export class MatchAny implements PatternMatching {
   public value?: any;
