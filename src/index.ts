@@ -1,3 +1,5 @@
+export * as H from './Heuristic';
+
 export interface Knowledge {
   String: { [name: string]: PatternConstructor };
 }
