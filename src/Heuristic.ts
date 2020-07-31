@@ -23,6 +23,8 @@ export interface Namespace {
 }
 
 export type Score = [number, number, Array<Error>];
+export type Scorable = number | [number, number] | Score;
+export type Result = [...Score, any];
 
 export function parseRule(input: SerializedRule): Rule {
   const rule: Rule =
@@ -50,7 +52,7 @@ export function computeScorer(scorer: string) {
     default: case 'linear': return wrapScore((l: any, r: any) => compareLinearRange(l, r, min, ref, max));
     }
   } else {
-    const fn = new Function('l', 'r', 'with (this) { return (' + (scorer || '0') + ') }');
+    const fn = new Function('l', 'r', 'with (this) { return (' + (scorer || '[0, 0]') + ') }');
     return wrapScore(fn);
   }
 }
@@ -84,37 +86,43 @@ export function wrapScore(fn: Function) {
   };
 }
 
-export function compareGaussianRange(l: number, r: number, min: number, ref: number, max: number) {
+export function compareGaussianRange(l: number, r: number, min: number, ref: number, max: number): number {
   const linearValue = compareLinearRange(l, r, min, ref, max);
-  const gassianValue = Math.exp(-Math.pow(linearValue, 2));
-  return Number(Math.pow(gassianValue, 3).toFixed(3));
+  const gassianValue = Math.exp(-((linearValue - 1) ** 2));
+  return Number((gassianValue ** 3).toFixed(3));
 };
 
-export function compareLinearRange(l: number, r: number, min: number, ref: number, max: number) {
-  const ratio = r / ref;
-  const pos = (l / r) - 1;
-  if (pos > 0) return pos * (1 / (((max * ratio) / ref) - 1));
-  if (pos < 0) return pos * (1 / (1 - ((min * ratio) / ref)));
-  return 1;
+export function compareLinearRange(l: number, r: number, min: number, ref: number, max: number): number {
+  const dist = Math.abs(r - l);
+  if (dist === 0) return 1;
+  const maxdist = dist > 0 ? max - ref : ref - min
+  if (dist > maxdist) return 0;
+  return 1 - (dist / maxdist);
 };
 
-export function execute(rules: Iterable<Rule>, left: any, right: any, namespace: Namespace = {}): Score {
+export function execute(rules: Iterable<Rule>, left: any, right: any, namespace: Namespace = {}): Result {
   let score = 0;
   let total = 0;
   const errors = [];
+  const details: { [name: string]: [number, number] | string } = {};
   for (const rule of rules) {
     try {
       const leftValue  = rule.extractor.call(namespace, left);
       const rightValue = rule.against.call(namespace, right);
+      if (leftValue == null || rightValue == null) continue ;
       const result = rule.scorer.call(namespace, leftValue, rightValue);
-      score += (result[0] / result[1]) * rule.strength;
-      total += rule.strength;
+      if (result[1] > 0) {
+        score += result[0] * rule.strength;
+        total += result[1] * rule.strength;
+      }
+      details[rule.criteria] = [result[0] * rule.strength, result[1] * rule.strength];
       errors.push(...result[2]);
     } catch (e) {
       total += rule.strength;
       errors.push(e);
+      details[rule.criteria] = e.toString();
     }
   }
-  return [score, total, errors];
+  return [score, total, errors, details];
 }
 
