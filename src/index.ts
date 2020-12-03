@@ -86,7 +86,7 @@ export class MatchMeta extends MatchAny {
   }
 }
 
-// /test/i
+// pattern: "/test/i"
 export class MatchRegexp extends MatchAny {
   constructor(knowledge: Knowledge, regexp?: string | RegExp) {
     super(knowledge);
@@ -115,7 +115,7 @@ export class MatchRegexp extends MatchAny {
   }
 }
 
-// "test"
+// pattern: "test"
 export class MatchEqual extends MatchAny {
   constructor(knowledge: Knowledge, pattern?: any) {
     super(knowledge);
@@ -125,7 +125,7 @@ export class MatchEqual extends MatchAny {
 
 export const StringMatch = { Regexp: MatchRegexp };
 
-// [1, 2, 3, 'toto', /test/i]
+// pattern: [1, 2, 3, 'toto', /test/i]
 export class MatchOneOf extends MatchAny {
   constructor(knowledge: Knowledge, array?: Array<any>) {
     super(knowledge);
@@ -155,7 +155,7 @@ export class MatchOneOf extends MatchAny {
   }
 }
 
-// [1, 2, 3, 'toto']
+// pattern: [1, 2, 3, 'toto']
 export class MatchOneWithSet extends MatchOneOf {
   constructor(knowledge: Knowledge, array?: Array<any>) {
     super(knowledge);
@@ -168,7 +168,7 @@ export class MatchOneWithSet extends MatchOneOf {
   }
 }
 
-// { a: 42, b: 'toto', c: /titi/ }
+// pattern: { a: 42, b: 'toto', c: /titi/ }
 export class MatchAllOf extends MatchAny {
   constructor(knowledge: Knowledge, object?: { [key: string]: any }) {
     super(knowledge);
@@ -189,16 +189,29 @@ export class MatchAllOf extends MatchAny {
   }
 }
 
-// [1, 15, 100] against [0, 1, 2, 3, ..., 100] => true
-// [15, 1, 100] against [0, 1, 2, 3, ..., 100] => false
+// pattern: [1, 15, 100] against [0, 1, 2, 3, ..., 100] => true
+// pattern: [15, 1, 100] against [0, 1, 2, 3, ..., 100] => false
 export class MatchArrayFit extends MatchAny {
   constructor(knowledge: Knowledge, array?: Array<any>) {
     super(knowledge);
     if (arguments.length < 2) return ;
-    throw new Error('Not yet implemented');
+    this.value = array.map(x => new MatchAny(knowledge, x));
   }
 
   public test(input: any) {
-    return false;
+    if (!(input instanceof Array)) return false;
+    let i = 0;
+    loop: for (const point of this.value) {
+      while (i < input.length) {
+        if (point.test(input[i]) === false) {
+          i += 1;
+        } else {
+          i += 1;
+          continue loop;
+        }
+      }
+      return false;
+    }
+    return true;
   }
 }
