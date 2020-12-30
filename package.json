@@ -2,6 +2,7 @@
   "name": "cqes-match",
   "version": "1.0.0",
   "description": "Pattern matching library",
+  "main": "dist/src/index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/np42/cqes-match.git"
