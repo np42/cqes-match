@@ -14,5 +14,8 @@
     "url": "https://github.com/apiculteur/cqes/issues"
   },
   "homepage": "https://github.com/apiculteur/cqes-type#readme",
-  "dependencies": {}
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^14.14.17"
+  }
 }
