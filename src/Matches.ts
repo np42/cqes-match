@@ -42,7 +42,7 @@ export class MatchAny implements PatternMatching {
     } break ;
     case '[object Object]': {
       if ('$' in pattern && typeof pattern.$ === 'string') {
-        throw new Error('Not yet implemented');
+        return new MatchTaggedObject(knowledge, pattern);
       } else {
         return new MatchAllOf(knowledge, pattern);
       }
@@ -163,27 +163,6 @@ export class MatchOneWithSet extends MatchOneOf {
   }
 }
 
-// pattern: { a: 42, b: 'toto', c: /titi/ }
-export class MatchAllOf extends MatchAny {
-  constructor(knowledge: Knowledge, object?: { [key: string]: any }) {
-    super(knowledge);
-    if (arguments.length < 2) return ;
-    this.value = {};
-    for (const key in object)
-      this.value[key] = new MatchAny(knowledge, object[key]);
-  }
-
-  public test(input: any) {
-    if (!input) return false;
-    if (typeof input !== 'object') return false;
-    for (const key in this.value) {
-      if (!(key in input)) return false;
-      if (!this.value[key].test(input[key])) return false;
-    }
-    return true;
-  }
-}
-
 // pattern: [1, 15, 100] against [0, 1, 2, 3, ..., 100] => true
 // pattern: [15, 1, 100] against [0, 1, 2, 3, ..., 100] => false
 export class MatchArrayFit extends MatchAny {
@@ -211,6 +190,7 @@ export class MatchArrayFit extends MatchAny {
   }
 }
 
+// pattern: [/to{2,}/, { $: 'String.length', eq: 6 }] against 'hitoto' => true
 export class MatchArrayAnd extends MatchAny {
   constructor(knowledge: Knowledge, array?: Array<any>) {
     super(knowledge);
@@ -225,3 +205,90 @@ export class MatchArrayAnd extends MatchAny {
     return true;
   }
 }
+
+// pattern: { a: 42, b: 'toto', c: /titi/ }
+export class MatchAllOf extends MatchAny {
+  constructor(knowledge: Knowledge, object?: { [key: string]: any }) {
+    super(knowledge);
+    if (arguments.length < 2) return ;
+    this.value = {};
+    for (const key in object)
+      this.value[key] = new MatchAny(knowledge, object[key]);
+  }
+
+  public test(input: any) {
+    if (!input) return false;
+    if (typeof input !== 'object') return false;
+    for (const key in this.value) {
+      if (!(key in input)) return false;
+      if (!this.value[key].test(input[key])) return false;
+    }
+    return true;
+  }
+}
+
+
+// { $: string, ...namedArgs: any[] }
+export class MatchTaggedObject extends MatchAny {
+  constructor(knowledge: Knowledge, pattern?: { $: string, [arg: string]: any }) {
+    super(knowledge);
+    if (arguments.length < 2) return ;
+    if ('$' in pattern) {
+      const schema = pattern.$;
+      if (knowledge && knowledge.Object && knowledge.Object[schema])
+        return new knowledge.Object[schema](knowledge, pattern);
+      else if (ObjectMatch[schema])
+        return new ObjectMatch[schema](knowledge, pattern);
+    }
+    return new MatchAllOf(knowledge, pattern);
+  }
+}
+
+// ----------------------
+
+// { $: 'Object.has', fields: ['a', 'b'] }
+export class MatchTaggedObject_ObjectHas extends MatchAny {
+  constructor(knowledge: Knowledge, pattern?: { $: string, fields: Array<string> }) {
+    super(knowledge);
+    if (arguments.length < 2) return ;
+    this.value = pattern.fields.slice();
+  }
+
+  public test(input: any) {
+    for (const fieldName of this.value)
+      if (!(fieldName in input))
+        return false;
+    return true;
+  }
+}
+
+// { $: 'Object.hasNot', fields: ['a', 'b'] }
+export class MatchTaggedObject_ObjectHasNot extends MatchAny {
+  constructor(knowledge: Knowledge, pattern?: { $: string, fields: Array<string> }) {
+    super(knowledge);
+    if (arguments.length < 2) return ;
+    this.value = pattern.fields.slice();
+  }
+
+  public test(input: any) {
+    for (const fieldName of this.value)
+      if (fieldName in input)
+        return false;
+    return true;
+  }
+}
+
+// { $: 'and', forAll: [...tests] }
+export class MatchTaggedObject_And extends MatchAny {
+  constructor(knowledge: Knowledge, pattern?: { $: string, forAll: Array<any> }) {
+    super(knowledge);
+    if (arguments.length < 2) return ;
+    return new MatchArrayAnd(knowledge, pattern.forAll);
+  }
+}
+
+export const ObjectMatch =
+  { 'Object.has':    MatchTaggedObject_ObjectHas
+  , 'Object.hasNot': MatchTaggedObject_ObjectHasNot
+  , 'and':           MatchTaggedObject_And
+  };
